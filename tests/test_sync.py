@@ -12,6 +12,15 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(len(sync.merge_inventories([a],[a,b],{})),2)
     def test_disappearance_fails(self):
         with self.assertRaises(ValueError): sync.merge_inventories([self.row()],[self.row()],{'minutes-2':{}})
+    def test_provisional_replaced_passes(self):
+        o=dict(self.row('minutes-3981'),title='의회운영위원회 제1호(2026.08.12 수요일)',date='2026-08-12',publication_status='provisional')
+        n=dict(self.row('minutes-4016'),title='의회운영위원회 제1호(2026.08.13 목요일)',date='2026-08-13')
+        self.assertEqual(sync.replaced_ids({'minutes-3981':o},{'minutes-4016':n}),['minutes-3981'])
+        self.assertEqual(len(sync.merge_inventories([n],[n],{'minutes-3981':o})),1)
+    def test_published_disappearance_still_fails(self):
+        o=dict(self.row('minutes-3981'),title='의회운영위원회 제1호(2026.08.12 수요일)',date='2026-08-12')
+        n=dict(self.row('minutes-4016'),title='의회운영위원회 제1호(2026.08.12 수요일)',date='2026-08-12')
+        with self.assertRaises(ValueError): sync.merge_inventories([n],[n],{'minutes-3981':o})
     def test_empty_fails(self):
         with self.assertRaises(ValueError): sync.merge_inventories([],[],{})
     def test_conflict_fails(self):
