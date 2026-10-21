@@ -181,6 +181,7 @@ def run(mode):
         for file in stage.rglob('*'):
             if file.is_file():
                 target=ROOT/file.relative_to(stage);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(file,target)
+        for oid in replaced_ids(old,live): (ROOT/old[oid]['path']).unlink(missing_ok=True)
     readme=(ROOT/'README.md').read_text()
     status=f'<!-- archive-status -->\n최종 확인: **{today}** · **{len(rows)}건** (제3대 {manifest["byTerm"].get("3",0)}건 / 제4대 {manifest["byTerm"].get("4",0)}건). 임시회의록 {manifest["provisional"]}건 포함. 가장 최근 회의일: {manifest["latestMeetingDate"]}.\n<!-- /archive-status -->'
     readme=re.sub(r'<!-- archive-status -->[\s\S]*?<!-- /archive-status -->',lambda _:status,readme)
