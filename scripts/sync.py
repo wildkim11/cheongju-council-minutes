@@ -76,9 +76,26 @@ def merge_inventories(year, term, old):
         prior=merged.get(row['id'])
         if prior and any(prior[k]!=row[k] for k in ('date','committee','publication_status')): raise ValueError('Conflicting inventory: '+row['id'])
         merged[row['id']]=row
-    missing=set(old)-set(merged)
+    missing=set(old)-set(merged)-set(replaced_ids(old,merged))
     if missing: raise ValueError('Existing records disappeared; manual review required: '+','.join(sorted(missing)))
     return merged
+
+def _meeting_key(row):
+    return (row.get('committee'), (row.get('title') or '').split('(')[0].strip())
+
+def replaced_ids(old, merged):
+    # 임시회의록이 확정본으로 바뀌면 공식 일련번호(schSn)가 새로 매겨져서 예전 번호가 목록에서 사라져요.
+    # 임시본이었고, 같은 위원회·같은 회차(제N호)가 3일 안의 날짜로 새 번호에 있으면 '대체된 것'으로 보고 통과시켜요.
+    out=[]
+    for oid in set(old)-set(merged):
+        o=old[oid]
+        if o.get('publication_status')!='provisional' or not o.get('date'): continue
+        d0=dt.date.fromisoformat(o['date'])
+        for r in merged.values():
+            if r['id'] in old or _meeting_key(r)!=_meeting_key(o): continue
+            if abs((dt.date.fromisoformat(r['date'])-d0).days)<=3:
+                out.append(oid); break
+    return sorted(out)
 
 class Plain(HTMLParser):
     def __init__(self): super().__init__(); self.parts=[]; self.skip=0
@@ -149,6 +166,9 @@ def run(mode):
     with tempfile.TemporaryDirectory(prefix='minutes-sync-') as temp:
         stage=Path(temp).resolve()
         for directory in ('minutes','indexes'): shutil.copytree(ROOT/directory,stage/directory)
+        for oid in replaced_ids(old,live):
+            print('임시회의록 '+oid+' 은(는) 확정본으로 대체되어 제거해요',flush=True)
+            (stage/old[oid]['path']).unlink(missing_ok=True)
         rows=[update_record(stage,r,old.get(r['id']),bodies.get(r['id']),stamp) for r in sorted(live.values(),key=lambda r:(r['date'],r['id']))]
         manifest=json.loads((ROOT/'manifest.json').read_text())
         manifest.update(endDate=today,checkedAt=stamp,latestMeetingDate=max(r['date'] for r in rows),listed=len(rows),collected=len(rows),byYear=dict(collections.Counter(str(r['year']) for r in rows)),byTerm=dict(collections.Counter(str(r['term']) for r in rows)),provisional=sum(r['publication_status']=='provisional' for r in rows))
