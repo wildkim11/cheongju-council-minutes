@@ -1,13 +1,10 @@
 {
-  "checkedAt": "2026-10-26T07:39:58.012808+09:00",
-  "mode": "full",
+  "checkedAt": "2026-10-27T07:47:04.798168+09:00",
+  "mode": "incremental",
   "collected": 904,
   "new": [],
-  "changed": [
-    "minutes-3907",
-    "minutes-3962"
-  ],
-  "bodiesChecked": 904,
+  "changed": [],
+  "bodiesChecked": 5,
   "provisional": 5,
   "onlyTerm": [
     "minutes-2951",
